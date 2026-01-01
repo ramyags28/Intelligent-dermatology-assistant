@@ -103,20 +103,63 @@ MEDICINE_DB = {
 MED_LINK = "https://www.1mg.com/search/all?name="
 
 # ======================================================
-# UTILITY FUNCTIONS
+# UTILITIES
 # ======================================================
+
 def preprocess_image(img):
     img = img.resize((224,224))
-    img = np.array(img)/255.0
-    return np.expand_dims(img,0)
+    img = np.array(img) / 255.0
+    return np.expand_dims(img, 0)
+
 
 def severity_calc(disease, conf):
-    if disease in ["Melanoma","Basal Cell Carcinoma","Squamous Cell Carcinoma"]:
+    if disease in ["Melanoma", "Basal Cell Carcinoma", "Squamous Cell Carcinoma"]:
         return "Severe"
     elif conf >= 75:
         return "Moderate"
     else:
         return "Mild"
+
+
+# ----------------- GRAD-CAM -----------------
+
+def gradcam(img_array, model):
+    for layer in reversed(model.layers):
+        if isinstance(layer, tf.keras.layers.Conv2D):
+            last_conv = layer.name
+            break
+
+    grad_model = tf.keras.models.Model(
+        model.inputs, [model.get_layer(last_conv).output, model.output]
+    )
+
+    with tf.GradientTape() as tape:
+        conv_out, preds = grad_model(img_array)
+        loss = preds[:, tf.argmax(preds[0])]
+
+    grads = tape.gradient(loss, conv_out)
+    pooled = tf.reduce_mean(grads, axis=(0,1,2))
+    heatmap = tf.reduce_sum(pooled * conv_out[0], axis=-1)
+    heatmap = np.maximum(heatmap, 0)
+    heatmap /= (np.max(heatmap) + 1e-8)
+
+    return heatmap
+
+
+# ----------------- OVERLAY (NO CV2) -----------------
+
+def overlay(img, heatmap):
+    img = img.resize((224,224))
+    img = np.array(img)
+
+    heatmap = Image.fromarray(np.uint8(255 * heatmap))
+    heatmap = heatmap.resize((224,224))
+    heatmap = np.array(heatmap)
+
+    heatmap = cm.jet(heatmap)[:, :, :3] * 255
+    overlay_img = 0.6 * img + 0.4 * heatmap
+    return Image.fromarray(overlay_img.astype(np.uint8))
+
 
 # ======================================================
 # SAFE GRAD-CAM
