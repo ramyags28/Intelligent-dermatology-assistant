@@ -3,7 +3,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from PIL import Image
-import cv2
 import matplotlib.cm as cm
 from fpdf import FPDF
 import urllib.parse
@@ -47,8 +46,6 @@ color:white;text-decoration:none;font-weight:bold;}
 # MODEL DOWNLOAD + LOAD (GOOGLE DRIVE)
 # ======================================================
 MODEL_PATH = "dermatology_assistant_model.keras"
-
-# 🔴 REPLACE THIS FILE ID WITH YOUR OWN GOOGLE DRIVE FILE ID
 GDRIVE_URL = "https://drive.google.com/uc?id=1k5QpG18JlqCetsGhqZuNdCFS_OdPDDUZ"
 
 @st.cache_resource
@@ -72,7 +69,7 @@ CLASS_NAMES = [
 ]
 
 # ======================================================
-# MEDICINE DATABASE (ALL 23)
+# MEDICINE DATABASE
 # ======================================================
 MEDICINE_DB = {
     "Acne":["Benzoyl Peroxide","Adapalene"],
@@ -105,12 +102,10 @@ MED_LINK = "https://www.1mg.com/search/all?name="
 # ======================================================
 # UTILITIES
 # ======================================================
-
 def preprocess_image(img):
     img = img.resize((224,224))
     img = np.array(img) / 255.0
     return np.expand_dims(img, 0)
-
 
 def severity_calc(disease, conf):
     if disease in ["Melanoma", "Basal Cell Carcinoma", "Squamous Cell Carcinoma"]:
@@ -120,9 +115,9 @@ def severity_calc(disease, conf):
     else:
         return "Mild"
 
-
-# ----------------- GRAD-CAM -----------------
-
+# ======================================================
+# GRAD-CAM (CLOUD SAFE)
+# ======================================================
 def gradcam(img_array, model):
     for layer in reversed(model.layers):
         if isinstance(layer, tf.keras.layers.Conv2D):
@@ -140,52 +135,17 @@ def gradcam(img_array, model):
     grads = tape.gradient(loss, conv_out)
     pooled = tf.reduce_mean(grads, axis=(0,1,2))
     heatmap = tf.reduce_sum(pooled * conv_out[0], axis=-1)
-    heatmap = np.maximum(heatmap, 0)
+    heatmap = np.maximum(heatmap,0)
     heatmap /= (np.max(heatmap) + 1e-8)
-
-    return heatmap
-
-
-# ----------------- OVERLAY (NO CV2) -----------------
-
-def overlay(img, heatmap):
-    img = img.resize((224,224))
-    img = np.array(img)
-
-    heatmap = Image.fromarray(np.uint8(255 * heatmap))
-    heatmap = heatmap.resize((224,224))
-    heatmap = np.array(heatmap)
-
-    heatmap = cm.jet(heatmap)[:, :, :3] * 255
-    overlay_img = 0.6 * img + 0.4 * heatmap
-    return Image.fromarray(overlay_img.astype(np.uint8))
-
-
-# ======================================================
-# SAFE GRAD-CAM
-# ======================================================
-def gradcam(img_array, model):
-    for layer in reversed(model.layers):
-        if isinstance(layer, tf.keras.layers.Conv2D):
-            last_conv = layer.name
-            break
-    grad_model = tf.keras.models.Model(
-        model.inputs, [model.get_layer(last_conv).output, model.output]
-    )
-    with tf.GradientTape() as tape:
-        conv_out, preds = grad_model(img_array)
-        loss = preds[:, tf.argmax(preds[0])]
-    grads = tape.gradient(loss, conv_out)
-    pooled = tf.reduce_mean(grads, axis=(0,1,2))
-    heatmap = tf.reduce_sum(pooled * conv_out[0], axis=-1)
-    heatmap = np.maximum(heatmap,0) / (np.max(heatmap)+1e-8)
     return heatmap
 
 def overlay(img, heatmap):
     img = np.array(img.resize((224,224)))
-    heatmap = cv2.resize(heatmap,(224,224))
-    heatmap = cm.jet(np.uint8(255*heatmap))[:,:,:3]
-    return Image.fromarray(np.uint8(heatmap*0.4 + img))
+    heatmap = Image.fromarray(np.uint8(255 * heatmap)).resize((224,224))
+    heatmap = np.array(heatmap)
+    heatmap = cm.jet(heatmap)[:, :, :3] * 255
+    overlay_img = 0.6 * img + 0.4 * heatmap
+    return Image.fromarray(overlay_img.astype(np.uint8))
 
 # ======================================================
 # PDF REPORT
@@ -197,19 +157,25 @@ def make_pdf(name, age, gender, disease, conf, severity, meds):
     pdf.cell(0,10,"AI Dermatology Diagnosis Report",ln=True,align="C")
     pdf.ln(5)
     pdf.set_font("Arial",size=12)
+
     for t in [
-        f"Name: {name}", f"Age: {age}", f"Gender: {gender}",
-        f"Disease: {disease}", f"Confidence: {conf}%",
+        f"Name: {name}",
+        f"Age: {age}",
+        f"Gender: {gender}",
+        f"Disease: {disease}",
+        f"Confidence: {conf}%",
         f"Severity: {severity}"
     ]:
         pdf.cell(0,8,t,ln=True)
+
     pdf.ln(3)
     pdf.cell(0,8,"Medicines:",ln=True)
     for m in meds:
         pdf.cell(0,8,f"- {m}",ln=True)
+
     pdf.ln(3)
     pdf.set_font("Arial",size=10)
-    pdf.multi_cell(0,8,"AI-based preliminary screening only.")
+    pdf.multi_cell(0,8,"AI-based preliminary screening only. Consult a dermatologist.")
     return pdf
 
 # ======================================================
@@ -229,7 +195,7 @@ def login():
 def app():
     st.title("🧴 AI Dermatology Assistant")
 
-    c1,c2 = st.columns(2)
+    c1, c2 = st.columns(2)
 
     with c1:
         name = st.text_input("Patient Name")
@@ -240,33 +206,33 @@ def app():
 
         if file:
             img = Image.open(file)
-            st.image(img,use_container_width=True)
+            st.image(img, use_container_width=True)
 
     with c2:
         if predict and file:
             arr = preprocess_image(img)
             preds = model.predict(arr)[0]
             idx = np.argmax(preds)
+
             disease = CLASS_NAMES[idx]
             conf = round(preds[idx]*100,2)
             sev = severity_calc(disease, conf)
 
-            st.markdown(f"<div class='card'><h3>🩺 {disease}</h3><p>Confidence: {conf}%</p></div>",unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='card'><h3>{disease}</h3><p>Confidence: {conf}%</p></div>",
+                unsafe_allow_html=True
+            )
 
             sev_class = "mild" if sev=="Mild" else "moderate" if sev=="Moderate" else "severe"
-            st.markdown(f"<div class='card {sev_class}'><h3>⚠ Severity: {sev}</h3></div>",unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='card {sev_class}'><h3>Severity: {sev}</h3></div>",
+                unsafe_allow_html=True
+            )
 
             st.subheader("💊 Medicines")
             meds = MEDICINE_DB[disease]
             for m in meds:
                 st.markdown(f"- **{m}** → [Link]({MED_LINK}{urllib.parse.quote(m)})")
-
-            st.subheader("👨‍⚕️ Doctor Consultation")
-            st.markdown("""
-            <a class="btn btn-green" href="https://wa.me/919999999999" target="_blank">WhatsApp Doctor</a>
-            &nbsp;
-            <a class="btn btn-blue" href="tel:+919999999999">Call Doctor</a>
-            """,unsafe_allow_html=True)
 
             st.subheader("🔥 Grad-CAM")
             st.image(overlay(img, gradcam(arr, model)))
@@ -277,11 +243,11 @@ def app():
                 height=300
             )
 
-            pdf = make_pdf(name,age,gender,disease,conf,sev,meds)
+            pdf = make_pdf(name, age, gender, disease, conf, sev, meds)
             st.download_button(
                 "📄 Download PDF",
                 pdf.output(dest="S").encode("latin-1"),
-                "report.pdf",
+                "Dermatology_Report.pdf",
                 "application/pdf"
             )
 
