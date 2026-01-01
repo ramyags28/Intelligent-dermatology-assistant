@@ -1,7 +1,7 @@
 streamlit
 tensorflow
 pillow
-opencv-python
+opencv-python-headless
 matplotlib
 fpdf
 gdown
