@@ -50,7 +50,7 @@ GDRIVE_URL = "https://drive.google.com/uc?id=1k5QpG18JlqCetsGhqZuNdCFS_OdPDDUZ"
 @st.cache_resource
 def load_derm_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner("Downloading model..."):
+        with st.spinner("📥 Downloading model (first run only)..."):
             gdown.download(GDRIVE_URL, MODEL_PATH, quiet=False)
     return load_model(MODEL_PATH)
 
@@ -99,13 +99,13 @@ DISEASE_DB = {
     "Hair Loss Photos Alopecia and other Hair Diseases": ("Hair thinning, bald patches", "Mild", ["Minoxidil", "Biotin"]),
     "Herpes HPV and other STDs": ("Blisters, warts", "Moderate", ["Acyclovir"]),
     "Light Diseases and Disorders of Pigmentation": ("Light or dark patches", "Mild", ["Azelaic Acid", "Sunscreen"]),
-    "Lupus and other Connective Tissue Diseases": ("Butterfly rash", "Severe", ["Hydroxychloroquine"]),
+    "Lupus and other Connective Tissue Diseases": ("Butterfly rash, photosensitivity", "Severe", ["Hydroxychloroquine"]),
     "Melanoma Skin Cancer Nevi and Moles": ("Irregular mole, bleeding", "Severe", ["Immediate Specialist Care"]),
     "Nail Fungus and other Nail Disease": ("Thick discolored nails", "Moderate", ["Antifungal Lacquer"]),
     "Poison Ivy Photos and other Contact Dermatitis": ("Itchy contact rash", "Mild", ["Topical Steroids"]),
     "Psoriasis pictures Lichen Planus and Related Diseases": ("Silvery scaly plaques", "Moderate", ["Coal Tar", "Vitamin D Cream"]),
     "Scabies Lyme Disease and other Infestations and Bites": ("Severe itching, burrows", "Moderate", ["Permethrin Cream"]),
-    "Seborrheic Keratoses and other Benign Tumors": ("Waxy skin growths", "Mild", ["Observation"]),
+    "Seborrheic Keratoses and other Benign Tumors": ("Waxy benign growths", "Mild", ["Observation"]),
     "Systemic Disease": ("Skin signs of internal illness", "Severe", ["Treat underlying disease"]),
     "Tinea Ringworm Candidiasis and other Fungal Infections": ("Ring-shaped itchy rash", "Moderate", ["Clotrimazole", "Ketoconazole"]),
     "Urticaria Hives": ("Raised itchy wheals", "Mild", ["Antihistamines"]),
@@ -117,12 +117,14 @@ DISEASE_DB = {
 MED_LINK = "https://www.webmd.com/search/search_results/default.aspx?query="
 
 # ======================================================
-# IMAGE PREPROCESSING
+# IMAGE PREPROCESSING (IMPROVED)
 # ======================================================
 def preprocess(img):
-    img = img.convert("RGB").resize((224,224))
-    arr = np.array(img) / 255.0
-    return np.expand_dims(arr, 0)
+    img = img.convert("RGB")
+    img = img.resize((224,224))
+    arr = np.array(img).astype("float32") / 255.0
+    arr = np.clip(arr, 0, 1)
+    return np.expand_dims(arr, axis=0)
 
 # ======================================================
 # PDF REPORT
@@ -170,7 +172,7 @@ def login_page():
             st.session_state.logged_in = True
             st.rerun()
         else:
-            st.error("Enter username and password")
+            st.error("Please enter username and password")
 
 # ======================================================
 # MAIN APP
@@ -195,11 +197,13 @@ def main_app():
 
     if page == "Results" and "image" in st.session_state:
         img = st.session_state["image"]
-        preds = model.predict(preprocess(img))[0]
-        idx = int(np.argmax(preds))
+        preds = model.predict(preprocess(img), verbose=0)[0]
 
-        disease = CLASS_NAMES[idx]
-        confidence = round(float(preds[idx]) * 100, 2)
+        top3_idx = np.argsort(preds)[-3:][::-1]
+        main_idx = top3_idx[0]
+
+        disease = CLASS_NAMES[main_idx]
+        confidence = round(float(preds[main_idx]) * 100, 2)
         symptoms, severity, medicines = DISEASE_DB[disease]
 
         color = "severe" if severity=="Severe" else "moderate" if severity=="Moderate" else "mild"
@@ -208,14 +212,24 @@ def main_app():
         st.markdown(f"<div class='card'><b>Confidence:</b> {confidence}%</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='card'><b>Severity:</b> {severity}</div>", unsafe_allow_html=True)
 
-        st.subheader("Symptoms")
+        if confidence < 60:
+            st.warning(
+                "⚠️ Low confidence prediction. Some skin diseases have overlapping visual features. "
+                "Consult a dermatologist for confirmation."
+            )
+
+        st.subheader("🔍 Top 3 Predictions")
+        for i in top3_idx:
+            st.write(f"{CLASS_NAMES[i]} — {round(float(preds[i])*100,2)}%")
+
+        st.subheader("🩺 Symptoms")
         st.write(symptoms)
 
-        st.subheader("Medicine Recommendation")
+        st.subheader("💊 Medicine Recommendation")
         for m in medicines:
             st.markdown(f"- **{m}** → [Info]({MED_LINK}{urllib.parse.quote(m)})")
 
-        st.subheader("Doctor Recommendation")
+        st.subheader("👨‍⚕ Doctor Recommendation")
         st.write("Consult a certified dermatologist")
         st.markdown("[📍 Find Nearby Dermatologist](https://www.google.com/maps/search/dermatologist+near+me)")
 
