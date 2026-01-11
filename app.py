@@ -17,6 +17,12 @@ st.set_page_config(
 )
 
 # ======================================================
+# SESSION STATE
+# ======================================================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+# ======================================================
 # STYLE
 # ======================================================
 st.markdown("""
@@ -30,8 +36,8 @@ st.markdown("""
     margin-bottom:15px;
 }
 .mild{background:#e8f5e9;}
-.moderate{background:#fffde7;}
 .severe{background:#ffebee;}
+.unknown{background:#eceff1;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -80,7 +86,7 @@ CLASS_NAMES = [
 ]
 
 # ======================================================
-# FULL DISEASE DATABASE (SYMPTOMS + MEDICINE + DOCTOR)
+# FULL DISEASE DATABASE (23 CLASSES)
 # ======================================================
 DISEASE_DB = {
     "Acne and Rosacea": {
@@ -90,8 +96,8 @@ DISEASE_DB = {
     },
     "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions": {
         "symptoms": "Rough scaly patches, non-healing sores",
-        "medicines": ["5-Fluorouracil", "Imiquimod"],
-        "doctor": "Dermato-oncologist"
+        "medicines": ["Sunscreen SPF 30+", "5-Fluorouracil"],
+        "doctor": "Dermato-Oncologist"
     },
     "Atopic Dermatitis": {
         "symptoms": "Dry itchy inflamed skin",
@@ -100,21 +106,21 @@ DISEASE_DB = {
     },
     "Bullous Disease": {
         "symptoms": "Fluid-filled blisters, skin peeling",
-        "medicines": ["Systemic corticosteroids"],
+        "medicines": ["Systemic Corticosteroids"],
         "doctor": "Immunodermatologist"
     },
     "Cellulitis Impetigo and other Bacterial Infections": {
-        "symptoms": "Red swollen painful skin, pus",
-        "medicines": ["Mupirocin", "Oral antibiotics"],
+        "symptoms": "Red swollen skin, pus, fever",
+        "medicines": ["Mupirocin", "Oral Antibiotics"],
         "doctor": "Dermatologist"
     },
     "Eczema": {
-        "symptoms": "Dry itchy cracked skin",
-        "medicines": ["Emollients", "Topical steroids"],
+        "symptoms": "Itching, cracked skin, redness",
+        "medicines": ["Emollients", "Topical Steroids"],
         "doctor": "Dermatologist"
     },
     "Exanthems and Drug Eruptions": {
-        "symptoms": "Sudden widespread rash",
+        "symptoms": "Sudden rash after drug intake",
         "medicines": ["Antihistamines"],
         "doctor": "Dermatologist"
     },
@@ -124,13 +130,13 @@ DISEASE_DB = {
         "doctor": "Trichologist"
     },
     "Herpes HPV and other STDs": {
-        "symptoms": "Painful blisters, warts",
+        "symptoms": "Blisters, warts, painful sores",
         "medicines": ["Acyclovir"],
         "doctor": "Dermatologist"
     },
     "Light Diseases and Disorders of Pigmentation": {
-        "symptoms": "Dark or light patches",
-        "medicines": ["Azelaic acid", "Sunscreen"],
+        "symptoms": "Dark or light skin patches",
+        "medicines": ["Azelaic Acid", "Sunscreen"],
         "doctor": "Dermatologist"
     },
     "Lupus and other Connective Tissue Diseases": {
@@ -139,37 +145,37 @@ DISEASE_DB = {
         "doctor": "Rheumatologist"
     },
     "Melanoma Skin Cancer Nevi and Moles": {
-        "symptoms": "Irregular mole, color change",
-        "medicines": ["Specialist evaluation"],
-        "doctor": "Dermato-oncologist"
+        "symptoms": "Irregular mole, bleeding",
+        "medicines": ["Immediate Specialist Evaluation"],
+        "doctor": "Dermato-Oncologist"
     },
     "Nail Fungus and other Nail Disease": {
         "symptoms": "Discolored thick nails",
-        "medicines": ["Antifungal nail lacquer"],
+        "medicines": ["Antifungal Nail Lacquer"],
         "doctor": "Dermatologist"
     },
     "Poison Ivy Photos and other Contact Dermatitis": {
         "symptoms": "Itchy rash after contact",
-        "medicines": ["Topical steroids"],
+        "medicines": ["Topical Steroids"],
         "doctor": "Dermatologist"
     },
     "Psoriasis pictures Lichen Planus and Related Diseases": {
         "symptoms": "Silvery scaly plaques",
-        "medicines": ["Vitamin D analogues", "Coal tar"],
+        "medicines": ["Coal Tar", "Vitamin D Cream"],
         "doctor": "Dermatologist"
     },
     "Scabies Lyme Disease and other Infestations and Bites": {
         "symptoms": "Severe itching, burrows",
-        "medicines": ["Permethrin cream"],
+        "medicines": ["Permethrin Cream"],
         "doctor": "Dermatologist"
     },
     "Seborrheic Keratoses and other Benign Tumors": {
-        "symptoms": "Benign growths",
-        "medicines": ["Observation / Cryotherapy"],
+        "symptoms": "Waxy skin growths",
+        "medicines": ["Observation", "Cryotherapy"],
         "doctor": "Dermatologist"
     },
     "Systemic Disease": {
-        "symptoms": "Skin signs of internal disease",
+        "symptoms": "Skin signs of internal illness",
         "medicines": ["Treat underlying disease"],
         "doctor": "Physician"
     },
@@ -185,7 +191,7 @@ DISEASE_DB = {
     },
     "Vascular Tumors": {
         "symptoms": "Red or purple lesions",
-        "medicines": ["Laser therapy"],
+        "medicines": ["Laser Therapy", "Beta Blockers"],
         "doctor": "Dermatologist"
     },
     "Vasculitis Photos": {
@@ -194,8 +200,8 @@ DISEASE_DB = {
         "doctor": "Rheumatologist"
     },
     "Warts Molluscum and other Viral Infections": {
-        "symptoms": "Warts, skin bumps",
-        "medicines": ["Salicylic acid"],
+        "symptoms": "Small raised bumps",
+        "medicines": ["Salicylic Acid"],
         "doctor": "Dermatologist"
     }
 }
@@ -203,55 +209,101 @@ DISEASE_DB = {
 MED_LINK = "https://www.webmd.com/search/search_results/default.aspx?query="
 
 # ======================================================
-# IMAGE PREPROCESS
+# IMAGE PREPROCESSING
 # ======================================================
 def preprocess(img):
     img = img.convert("RGB").resize((224,224))
     arr = np.array(img) / 255.0
     return np.expand_dims(arr, 0)
 
-def severity_calc(disease):
-    if "Cancer" in disease or "Malignant" in disease:
-        return "Severe"
-    return "Mild"
+# ======================================================
+# LOGIN PAGE
+# ======================================================
+def login_page():
+    st.title("🔐 Login")
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if user and pwd:
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("Enter username and password")
 
 # ======================================================
-# MAIN UI
+# MAIN APP
 # ======================================================
-st.title("🧴 AI Dermatology Assistant")
+def main_app():
+    st.sidebar.title("🧴 Navigation")
+    page = st.sidebar.radio("Go to", ["Home", "Upload Image", "Webcam", "Results"])
 
-name = st.text_input("Patient Name")
-age = st.number_input("Age", 1, 120, 25)
-file = st.file_uploader("Upload Skin Image", ["jpg","jpeg","png"])
+    st.sidebar.success("Logged in")
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
 
-if file:
-    img = Image.open(file)
-    st.image(img, use_container_width=True)
+    if page == "Home":
+        st.title("AI Dermatology Assistant")
+        st.info(
+            "⚠️ Disclaimer: This AI system is for educational and screening purposes only. "
+            "It does not replace professional medical diagnosis."
+        )
 
-    arr = preprocess(img)
-    preds = model.predict(arr)[0]
-    idx = np.argmax(preds)
+    if page in ["Upload Image", "Webcam"]:
+        st.session_state["name"] = st.text_input("Patient Name")
+        st.session_state["age"] = st.number_input("Age", 1, 120, 25)
 
-    disease = CLASS_NAMES[idx]
-    confidence = round(float(preds[idx]) * 100, 2)
-    severity = severity_calc(disease)
-    info = DISEASE_DB[disease]
+        if page == "Upload Image":
+            file = st.file_uploader("Upload Skin Image", ["jpg","jpeg","png"])
+            if file:
+                st.session_state["image"] = Image.open(file)
 
-    st.markdown(f"<div class='card'><b>Disease:</b> {disease}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card'><b>Confidence:</b> {confidence}%</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card'><b>Severity:</b> {severity}</div>", unsafe_allow_html=True)
+        if page == "Webcam":
+            cam = st.camera_input("Capture Image")
+            if cam:
+                st.session_state["image"] = Image.open(cam)
 
-    st.subheader("🩺 Symptoms")
-    st.write(info["symptoms"])
+        if "image" in st.session_state:
+            st.image(st.session_state["image"], use_container_width=True)
 
-    st.subheader("💊 Medicines")
-    for m in info["medicines"]:
-        st.markdown(f"- **{m}** → [Info]({MED_LINK}{urllib.parse.quote(m)})")
+    if page == "Results" and "image" in st.session_state:
+        img = st.session_state["image"]
+        preds = model.predict(preprocess(img))[0]
+        idx = int(np.argmax(preds))
+        confidence = round(float(preds[idx]) * 100, 2)
 
-    st.subheader("👨‍⚕ Doctor Recommendation")
-    st.write(info["doctor"])
-    st.markdown("[📍 Find Nearby Doctor](https://www.google.com/maps/search/dermatologist+near+me)")
+        if confidence < 40:
+            disease = "Unknown Disease"
+            info = {
+                "symptoms": "Image does not match trained dataset",
+                "medicines": ["Consult dermatologist"],
+                "doctor": "Dermatologist"
+            }
+        else:
+            disease = CLASS_NAMES[idx]
+            info = DISEASE_DB[disease]
 
-    st.subheader("📊 All Class Confidence Scores")
-    for i, p in enumerate(preds):
-        st.write(f"{CLASS_NAMES[i]} : {round(float(p)*100,2)}%")
+        st.markdown(f"<div class='card'><b>Disease:</b> {disease}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card'><b>Accuracy:</b> {confidence}%</div>", unsafe_allow_html=True)
+
+        st.subheader("Symptoms")
+        st.write(info["symptoms"])
+
+        st.subheader("Medicines")
+        for m in info["medicines"]:
+            st.markdown(f"- **{m}** → [Info]({MED_LINK}{urllib.parse.quote(m)})")
+
+        st.subheader("Doctor Recommendation")
+        st.write(info["doctor"])
+
+        st.subheader("Top-3 Predictions")
+        for i in np.argsort(preds)[::-1][:3]:
+            st.write(f"{CLASS_NAMES[i]} : {round(float(preds[i])*100,2)}%")
+
+# ======================================================
+# ROUTER
+# ======================================================
+if not st.session_state.logged_in:
+    login_page()
+else:
+    main_app()
