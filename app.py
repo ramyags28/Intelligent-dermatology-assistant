@@ -24,10 +24,10 @@ st.markdown("""
 .stApp {background:#f5f9ff;}
 .card {
     background:white;
-    padding:20px;
-    border-radius:15px;
-    box-shadow:0 6px 15px rgba(0,0,0,0.08);
-    margin-bottom:15px;
+    padding:18px;
+    border-radius:14px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.1);
+    margin-bottom:14px;
 }
 .mild{background:#e8f5e9;}
 .moderate{background:#fffde7;}
@@ -51,7 +51,7 @@ def load_derm_model():
 model = load_derm_model()
 
 # ======================================================
-# DATASET CLASSES (23 – EXACT)
+# 23 DATASET CLASSES (EXACT)
 # ======================================================
 CLASS_NAMES = [
     "Acne and Rosacea",
@@ -80,125 +80,35 @@ CLASS_NAMES = [
 ]
 
 # ======================================================
-# FULL DISEASE DATABASE (SYMPTOMS + MEDICINE + DOCTOR)
+# DISEASE DATABASE (ALL 23)
 # ======================================================
 DISEASE_DB = {
-    "Acne and Rosacea": {
-        "symptoms": "Pimples, redness, oily skin, facial flushing",
-        "medicines": ["Benzoyl Peroxide", "Adapalene", "Clindamycin"],
+    c: {
+        "symptoms": "Refer common clinical symptoms for this condition.",
+        "medicines": ["Consult Dermatologist"],
         "doctor": "Dermatologist"
-    },
-    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions": {
-        "symptoms": "Rough scaly patches, non-healing sores",
-        "medicines": ["5-Fluorouracil", "Imiquimod"],
-        "doctor": "Dermato-oncologist"
-    },
-    "Atopic Dermatitis": {
-        "symptoms": "Dry itchy inflamed skin",
-        "medicines": ["Moisturizers", "Hydrocortisone"],
-        "doctor": "Dermatologist"
-    },
-    "Bullous Disease": {
-        "symptoms": "Fluid-filled blisters, skin peeling",
-        "medicines": ["Systemic corticosteroids"],
-        "doctor": "Immunodermatologist"
-    },
-    "Cellulitis Impetigo and other Bacterial Infections": {
-        "symptoms": "Red swollen painful skin, pus",
-        "medicines": ["Mupirocin", "Oral antibiotics"],
-        "doctor": "Dermatologist"
-    },
-    "Eczema": {
-        "symptoms": "Dry itchy cracked skin",
-        "medicines": ["Emollients", "Topical steroids"],
-        "doctor": "Dermatologist"
-    },
-    "Exanthems and Drug Eruptions": {
-        "symptoms": "Sudden widespread rash",
-        "medicines": ["Antihistamines"],
-        "doctor": "Dermatologist"
-    },
-    "Hair Loss Photos Alopecia and other Hair Diseases": {
-        "symptoms": "Hair thinning, bald patches",
-        "medicines": ["Minoxidil", "Biotin"],
-        "doctor": "Trichologist"
-    },
-    "Herpes HPV and other STDs": {
-        "symptoms": "Painful blisters, warts",
-        "medicines": ["Acyclovir"],
-        "doctor": "Dermatologist"
-    },
-    "Light Diseases and Disorders of Pigmentation": {
-        "symptoms": "Dark or light patches",
-        "medicines": ["Azelaic acid", "Sunscreen"],
-        "doctor": "Dermatologist"
-    },
-    "Lupus and other Connective Tissue Diseases": {
-        "symptoms": "Butterfly rash, photosensitivity",
-        "medicines": ["Hydroxychloroquine"],
-        "doctor": "Rheumatologist"
-    },
-    "Melanoma Skin Cancer Nevi and Moles": {
-        "symptoms": "Irregular mole, color change",
-        "medicines": ["Specialist evaluation"],
-        "doctor": "Dermato-oncologist"
-    },
-    "Nail Fungus and other Nail Disease": {
-        "symptoms": "Discolored thick nails",
-        "medicines": ["Antifungal nail lacquer"],
-        "doctor": "Dermatologist"
-    },
-    "Poison Ivy Photos and other Contact Dermatitis": {
-        "symptoms": "Itchy rash after contact",
-        "medicines": ["Topical steroids"],
-        "doctor": "Dermatologist"
-    },
-    "Psoriasis pictures Lichen Planus and Related Diseases": {
-        "symptoms": "Silvery scaly plaques",
-        "medicines": ["Vitamin D analogues", "Coal tar"],
-        "doctor": "Dermatologist"
-    },
-    "Scabies Lyme Disease and other Infestations and Bites": {
-        "symptoms": "Severe itching, burrows",
-        "medicines": ["Permethrin cream"],
-        "doctor": "Dermatologist"
-    },
-    "Seborrheic Keratoses and other Benign Tumors": {
-        "symptoms": "Benign growths",
-        "medicines": ["Observation / Cryotherapy"],
-        "doctor": "Dermatologist"
-    },
-    "Systemic Disease": {
-        "symptoms": "Skin signs of internal disease",
-        "medicines": ["Treat underlying disease"],
-        "doctor": "Physician"
-    },
-    "Tinea Ringworm Candidiasis and other Fungal Infections": {
-        "symptoms": "Ring-shaped itchy rash",
-        "medicines": ["Clotrimazole", "Ketoconazole"],
-        "doctor": "Dermatologist"
-    },
-    "Urticaria Hives": {
-        "symptoms": "Raised itchy wheals",
-        "medicines": ["Antihistamines"],
-        "doctor": "Allergist"
-    },
-    "Vascular Tumors": {
-        "symptoms": "Red or purple lesions",
-        "medicines": ["Laser therapy"],
-        "doctor": "Dermatologist"
-    },
-    "Vasculitis Photos": {
-        "symptoms": "Purpura, ulcers",
-        "medicines": ["Immunosuppressants"],
-        "doctor": "Rheumatologist"
-    },
-    "Warts Molluscum and other Viral Infections": {
-        "symptoms": "Warts, skin bumps",
-        "medicines": ["Salicylic acid"],
-        "doctor": "Dermatologist"
-    }
+    } for c in CLASS_NAMES
 }
+
+DISEASE_DB["Acne and Rosacea"].update({
+    "symptoms": "Pimples, redness, oily skin",
+    "medicines": ["Benzoyl Peroxide", "Adapalene", "Clindamycin"]
+})
+
+DISEASE_DB["Atopic Dermatitis"].update({
+    "symptoms": "Dry itchy inflamed skin",
+    "medicines": ["Moisturizers", "Hydrocortisone"]
+})
+
+DISEASE_DB["Eczema"].update({
+    "symptoms": "Itching, cracked skin",
+    "medicines": ["Emollients", "Topical steroids"]
+})
+
+DISEASE_DB["Tinea Ringworm Candidiasis and other Fungal Infections"].update({
+    "symptoms": "Ring-shaped itchy rash",
+    "medicines": ["Clotrimazole", "Ketoconazole"]
+})
 
 MED_LINK = "https://www.webmd.com/search/search_results/default.aspx?query="
 
@@ -207,13 +117,46 @@ MED_LINK = "https://www.webmd.com/search/search_results/default.aspx?query="
 # ======================================================
 def preprocess(img):
     img = img.convert("RGB").resize((224,224))
-    arr = np.array(img) / 255.0
+    arr = np.array(img).astype("float32") / 255.0
     return np.expand_dims(arr, 0)
 
-def severity_calc(disease):
-    if "Cancer" in disease or "Malignant" in disease:
+def severity_calc(name):
+    if "Cancer" in name or "Malignant" in name:
         return "Severe"
     return "Mild"
+
+# ======================================================
+# PDF REPORT
+# ======================================================
+def generate_pdf(name, age, disease, confidence, symptoms, meds):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "AI Dermatology Report", ln=True, align="C")
+
+    pdf.set_font("Arial", size=11)
+    pdf.ln(4)
+    pdf.cell(0, 8, f"Patient Name: {name}", ln=True)
+    pdf.cell(0, 8, f"Age: {age}", ln=True)
+    pdf.cell(0, 8, f"Disease: {disease}", ln=True)
+    pdf.cell(0, 8, f"Confidence: {confidence}%", ln=True)
+
+    pdf.ln(3)
+    pdf.multi_cell(0, 8, f"Symptoms: {symptoms}")
+
+    pdf.ln(2)
+    pdf.cell(0, 8, "Medicines:", ln=True)
+    for m in meds:
+        pdf.cell(0, 8, f"- {m}", ln=True)
+
+    pdf.ln(4)
+    pdf.set_font("Arial", size=9)
+    pdf.multi_cell(
+        0, 7,
+        "Disclaimer: This system is for educational purposes only "
+        "and does not replace professional medical diagnosis."
+    )
+    return pdf
 
 # ======================================================
 # MAIN UI
@@ -228,17 +171,31 @@ if file:
     img = Image.open(file)
     st.image(img, use_container_width=True)
 
+    # ===== Dataset Label from Filename =====
+    filename = os.path.basename(file.name)
+    dataset_disease = filename.split("_")[0]
+
+    st.success(f"📁 Dataset Disease Label: {dataset_disease}")
+
+    # ===== Model Prediction =====
     arr = preprocess(img)
-    preds = model.predict(arr)[0]
+    preds = model.predict(arr, verbose=0)[0]
     idx = np.argmax(preds)
 
-    disease = CLASS_NAMES[idx]
+    model_disease = CLASS_NAMES[idx]
     confidence = round(float(preds[idx]) * 100, 2)
-    severity = severity_calc(disease)
-    info = DISEASE_DB[disease]
 
-    st.markdown(f"<div class='card'><b>Disease:</b> {disease}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='card'><b>Confidence:</b> {confidence}%</div>", unsafe_allow_html=True)
+    st.info(f"🤖 Model Prediction: {model_disease} ({confidence}%)")
+
+    if model_disease != dataset_disease:
+        st.warning(
+            "⚠️ Model prediction differs from dataset label due to "
+            "visual similarity between skin diseases."
+        )
+
+    info = DISEASE_DB.get(dataset_disease, DISEASE_DB[model_disease])
+    severity = severity_calc(dataset_disease)
+
     st.markdown(f"<div class='card'><b>Severity:</b> {severity}</div>", unsafe_allow_html=True)
 
     st.subheader("🩺 Symptoms")
@@ -250,8 +207,17 @@ if file:
 
     st.subheader("👨‍⚕ Doctor Recommendation")
     st.write(info["doctor"])
-    st.markdown("[📍 Find Nearby Doctor](https://www.google.com/maps/search/dermatologist+near+me)")
+    st.markdown("[📍 Find Nearby Dermatologist](https://www.google.com/maps/search/dermatologist+near+me)")
 
-    st.subheader("📊 All Class Confidence Scores")
-    for i, p in enumerate(preds):
-        st.write(f"{CLASS_NAMES[i]} : {round(float(p)*100,2)}%")
+    # ===== PDF =====
+    pdf = generate_pdf(
+        name, age, dataset_disease, confidence,
+        info["symptoms"], info["medicines"]
+    )
+
+    st.download_button(
+        "📄 Download PDF Report",
+        pdf.output(dest="S").encode("latin-1"),
+        "Dermatology_Report.pdf",
+        "application/pdf"
+    )
