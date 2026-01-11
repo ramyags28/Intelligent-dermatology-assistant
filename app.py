@@ -30,14 +30,14 @@ st.markdown("""
 .stApp {background:#f5f9ff;}
 .card {
     background:white;
-    padding:20px;
-    border-radius:15px;
-    box-shadow:0 6px 15px rgba(0,0,0,0.08);
-    margin-bottom:15px;
+    padding:18px;
+    border-radius:14px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.1);
+    margin-bottom:14px;
 }
 .mild{background:#e8f5e9;}
+.moderate{background:#fffde7;}
 .severe{background:#ffebee;}
-.unknown{background:#eceff1;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -50,14 +50,14 @@ GDRIVE_URL = "https://drive.google.com/uc?id=1k5QpG18JlqCetsGhqZuNdCFS_OdPDDUZ"
 @st.cache_resource
 def load_derm_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner("📥 Downloading model (first run only)..."):
+        with st.spinner("Downloading model..."):
             gdown.download(GDRIVE_URL, MODEL_PATH, quiet=False)
     return load_model(MODEL_PATH)
 
 model = load_derm_model()
 
 # ======================================================
-# DATASET CLASSES (23 – EXACT)
+# 23 DATASET CLASSES
 # ======================================================
 CLASS_NAMES = [
     "Acne and Rosacea",
@@ -86,124 +86,32 @@ CLASS_NAMES = [
 ]
 
 # ======================================================
-# FULL DISEASE DATABASE (23 CLASSES)
+# DISEASE DATABASE (ALL 23)
 # ======================================================
 DISEASE_DB = {
-    "Acne and Rosacea": {
-        "symptoms": "Pimples, redness, oily skin, facial flushing",
-        "medicines": ["Benzoyl Peroxide", "Adapalene", "Clindamycin"],
-        "doctor": "Dermatologist"
-    },
-    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions": {
-        "symptoms": "Rough scaly patches, non-healing sores",
-        "medicines": ["Sunscreen SPF 30+", "5-Fluorouracil"],
-        "doctor": "Dermato-Oncologist"
-    },
-    "Atopic Dermatitis": {
-        "symptoms": "Dry itchy inflamed skin",
-        "medicines": ["Moisturizers", "Hydrocortisone"],
-        "doctor": "Dermatologist"
-    },
-    "Bullous Disease": {
-        "symptoms": "Fluid-filled blisters, skin peeling",
-        "medicines": ["Systemic Corticosteroids"],
-        "doctor": "Immunodermatologist"
-    },
-    "Cellulitis Impetigo and other Bacterial Infections": {
-        "symptoms": "Red swollen skin, pus, fever",
-        "medicines": ["Mupirocin", "Oral Antibiotics"],
-        "doctor": "Dermatologist"
-    },
-    "Eczema": {
-        "symptoms": "Itching, cracked skin, redness",
-        "medicines": ["Emollients", "Topical Steroids"],
-        "doctor": "Dermatologist"
-    },
-    "Exanthems and Drug Eruptions": {
-        "symptoms": "Sudden rash after drug intake",
-        "medicines": ["Antihistamines"],
-        "doctor": "Dermatologist"
-    },
-    "Hair Loss Photos Alopecia and other Hair Diseases": {
-        "symptoms": "Hair thinning, bald patches",
-        "medicines": ["Minoxidil", "Biotin"],
-        "doctor": "Trichologist"
-    },
-    "Herpes HPV and other STDs": {
-        "symptoms": "Blisters, warts, painful sores",
-        "medicines": ["Acyclovir"],
-        "doctor": "Dermatologist"
-    },
-    "Light Diseases and Disorders of Pigmentation": {
-        "symptoms": "Dark or light skin patches",
-        "medicines": ["Azelaic Acid", "Sunscreen"],
-        "doctor": "Dermatologist"
-    },
-    "Lupus and other Connective Tissue Diseases": {
-        "symptoms": "Butterfly rash, photosensitivity",
-        "medicines": ["Hydroxychloroquine"],
-        "doctor": "Rheumatologist"
-    },
-    "Melanoma Skin Cancer Nevi and Moles": {
-        "symptoms": "Irregular mole, bleeding",
-        "medicines": ["Immediate Specialist Evaluation"],
-        "doctor": "Dermato-Oncologist"
-    },
-    "Nail Fungus and other Nail Disease": {
-        "symptoms": "Discolored thick nails",
-        "medicines": ["Antifungal Nail Lacquer"],
-        "doctor": "Dermatologist"
-    },
-    "Poison Ivy Photos and other Contact Dermatitis": {
-        "symptoms": "Itchy rash after contact",
-        "medicines": ["Topical Steroids"],
-        "doctor": "Dermatologist"
-    },
-    "Psoriasis pictures Lichen Planus and Related Diseases": {
-        "symptoms": "Silvery scaly plaques",
-        "medicines": ["Coal Tar", "Vitamin D Cream"],
-        "doctor": "Dermatologist"
-    },
-    "Scabies Lyme Disease and other Infestations and Bites": {
-        "symptoms": "Severe itching, burrows",
-        "medicines": ["Permethrin Cream"],
-        "doctor": "Dermatologist"
-    },
-    "Seborrheic Keratoses and other Benign Tumors": {
-        "symptoms": "Waxy skin growths",
-        "medicines": ["Observation", "Cryotherapy"],
-        "doctor": "Dermatologist"
-    },
-    "Systemic Disease": {
-        "symptoms": "Skin signs of internal illness",
-        "medicines": ["Treat underlying disease"],
-        "doctor": "Physician"
-    },
-    "Tinea Ringworm Candidiasis and other Fungal Infections": {
-        "symptoms": "Ring-shaped itchy rash",
-        "medicines": ["Clotrimazole", "Ketoconazole"],
-        "doctor": "Dermatologist"
-    },
-    "Urticaria Hives": {
-        "symptoms": "Raised itchy wheals",
-        "medicines": ["Antihistamines"],
-        "doctor": "Allergist"
-    },
-    "Vascular Tumors": {
-        "symptoms": "Red or purple lesions",
-        "medicines": ["Laser Therapy", "Beta Blockers"],
-        "doctor": "Dermatologist"
-    },
-    "Vasculitis Photos": {
-        "symptoms": "Purpura, ulcers",
-        "medicines": ["Immunosuppressants"],
-        "doctor": "Rheumatologist"
-    },
-    "Warts Molluscum and other Viral Infections": {
-        "symptoms": "Small raised bumps",
-        "medicines": ["Salicylic Acid"],
-        "doctor": "Dermatologist"
-    }
+    "Acne and Rosacea": ("Pimples, redness, oily skin", "Mild", ["Benzoyl Peroxide", "Adapalene"]),
+    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions": ("Scaly patches, non-healing sores", "Severe", ["Sunscreen SPF 30+", "5-Fluorouracil"]),
+    "Atopic Dermatitis": ("Dry itchy inflamed skin", "Moderate", ["Moisturizers", "Hydrocortisone"]),
+    "Bullous Disease": ("Fluid-filled blisters", "Severe", ["Systemic Corticosteroids"]),
+    "Cellulitis Impetigo and other Bacterial Infections": ("Red swollen skin, pus", "Severe", ["Mupirocin", "Antibiotics"]),
+    "Eczema": ("Cracked itchy skin", "Moderate", ["Emollients", "Topical Steroids"]),
+    "Exanthems and Drug Eruptions": ("Sudden rash after medication", "Moderate", ["Antihistamines"]),
+    "Hair Loss Photos Alopecia and other Hair Diseases": ("Hair thinning, bald patches", "Mild", ["Minoxidil", "Biotin"]),
+    "Herpes HPV and other STDs": ("Blisters, warts", "Moderate", ["Acyclovir"]),
+    "Light Diseases and Disorders of Pigmentation": ("Light or dark patches", "Mild", ["Azelaic Acid", "Sunscreen"]),
+    "Lupus and other Connective Tissue Diseases": ("Butterfly rash", "Severe", ["Hydroxychloroquine"]),
+    "Melanoma Skin Cancer Nevi and Moles": ("Irregular mole, bleeding", "Severe", ["Immediate Specialist Care"]),
+    "Nail Fungus and other Nail Disease": ("Thick discolored nails", "Moderate", ["Antifungal Lacquer"]),
+    "Poison Ivy Photos and other Contact Dermatitis": ("Itchy contact rash", "Mild", ["Topical Steroids"]),
+    "Psoriasis pictures Lichen Planus and Related Diseases": ("Silvery scaly plaques", "Moderate", ["Coal Tar", "Vitamin D Cream"]),
+    "Scabies Lyme Disease and other Infestations and Bites": ("Severe itching, burrows", "Moderate", ["Permethrin Cream"]),
+    "Seborrheic Keratoses and other Benign Tumors": ("Waxy skin growths", "Mild", ["Observation"]),
+    "Systemic Disease": ("Skin signs of internal illness", "Severe", ["Treat underlying disease"]),
+    "Tinea Ringworm Candidiasis and other Fungal Infections": ("Ring-shaped itchy rash", "Moderate", ["Clotrimazole", "Ketoconazole"]),
+    "Urticaria Hives": ("Raised itchy wheals", "Mild", ["Antihistamines"]),
+    "Vascular Tumors": ("Red or purple lesions", "Moderate", ["Laser Therapy"]),
+    "Vasculitis Photos": ("Purpura, ulcers", "Severe", ["Immunosuppressants"]),
+    "Warts Molluscum and other Viral Infections": ("Small raised bumps", "Mild", ["Salicylic Acid"])
 }
 
 MED_LINK = "https://www.webmd.com/search/search_results/default.aspx?query="
@@ -215,6 +123,40 @@ def preprocess(img):
     img = img.convert("RGB").resize((224,224))
     arr = np.array(img) / 255.0
     return np.expand_dims(arr, 0)
+
+# ======================================================
+# PDF REPORT
+# ======================================================
+def create_pdf(name, age, disease, confidence, severity, symptoms, medicines):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial","B",16)
+    pdf.cell(0,10,"AI Dermatology Report",ln=True,align="C")
+    pdf.ln(4)
+
+    pdf.set_font("Arial",size=12)
+    pdf.cell(0,8,f"Patient Name: {name}",ln=True)
+    pdf.cell(0,8,f"Age: {age}",ln=True)
+    pdf.cell(0,8,f"Disease: {disease}",ln=True)
+    pdf.cell(0,8,f"Model Confidence: {confidence}%",ln=True)
+    pdf.cell(0,8,f"Severity: {severity}",ln=True)
+
+    pdf.ln(4)
+    pdf.multi_cell(0,8,f"Symptoms: {symptoms}")
+
+    pdf.ln(3)
+    pdf.cell(0,8,"Medicines:",ln=True)
+    for m in medicines:
+        pdf.cell(0,8,f"- {m}",ln=True)
+
+    pdf.ln(6)
+    pdf.set_font("Arial",size=10)
+    pdf.multi_cell(
+        0,8,
+        "Disclaimer: This AI-based system is for educational and screening purposes only. "
+        "It does not replace professional medical diagnosis."
+    )
+    return pdf
 
 # ======================================================
 # LOGIN PAGE
@@ -234,71 +176,65 @@ def login_page():
 # MAIN APP
 # ======================================================
 def main_app():
-    st.sidebar.title("🧴 Navigation")
-    page = st.sidebar.radio("Go to", ["Home", "Upload Image", "Webcam", "Results"])
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio("Go to", ["Patient Details", "Upload Image", "Results"])
 
-    st.sidebar.success("Logged in")
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
-    if page == "Home":
-        st.title("AI Dermatology Assistant")
-        st.info(
-            "⚠️ Disclaimer: This AI system is for educational and screening purposes only. "
-            "It does not replace professional medical diagnosis."
-        )
-
-    if page in ["Upload Image", "Webcam"]:
+    if page == "Patient Details":
         st.session_state["name"] = st.text_input("Patient Name")
         st.session_state["age"] = st.number_input("Age", 1, 120, 25)
 
-        if page == "Upload Image":
-            file = st.file_uploader("Upload Skin Image", ["jpg","jpeg","png"])
-            if file:
-                st.session_state["image"] = Image.open(file)
-
-        if page == "Webcam":
-            cam = st.camera_input("Capture Image")
-            if cam:
-                st.session_state["image"] = Image.open(cam)
-
-        if "image" in st.session_state:
+    if page == "Upload Image":
+        file = st.file_uploader("Upload Skin Image", ["jpg","jpeg","png"])
+        if file:
+            st.session_state["image"] = Image.open(file)
             st.image(st.session_state["image"], use_container_width=True)
 
     if page == "Results" and "image" in st.session_state:
         img = st.session_state["image"]
         preds = model.predict(preprocess(img))[0]
         idx = int(np.argmax(preds))
+
+        disease = CLASS_NAMES[idx]
         confidence = round(float(preds[idx]) * 100, 2)
+        symptoms, severity, medicines = DISEASE_DB[disease]
 
-        if confidence < 40:
-            disease = "Unknown Disease"
-            info = {
-                "symptoms": "Image does not match trained dataset",
-                "medicines": ["Consult dermatologist"],
-                "doctor": "Dermatologist"
-            }
-        else:
-            disease = CLASS_NAMES[idx]
-            info = DISEASE_DB[disease]
+        color = "severe" if severity=="Severe" else "moderate" if severity=="Moderate" else "mild"
 
-        st.markdown(f"<div class='card'><b>Disease:</b> {disease}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='card'><b>Accuracy:</b> {confidence}%</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card {color}'><b>Disease:</b> {disease}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card'><b>Confidence:</b> {confidence}%</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card'><b>Severity:</b> {severity}</div>", unsafe_allow_html=True)
 
         st.subheader("Symptoms")
-        st.write(info["symptoms"])
+        st.write(symptoms)
 
-        st.subheader("Medicines")
-        for m in info["medicines"]:
+        st.subheader("Medicine Recommendation")
+        for m in medicines:
             st.markdown(f"- **{m}** → [Info]({MED_LINK}{urllib.parse.quote(m)})")
 
         st.subheader("Doctor Recommendation")
-        st.write(info["doctor"])
+        st.write("Consult a certified dermatologist")
+        st.markdown("[📍 Find Nearby Dermatologist](https://www.google.com/maps/search/dermatologist+near+me)")
 
-        st.subheader("Top-3 Predictions")
-        for i in np.argsort(preds)[::-1][:3]:
-            st.write(f"{CLASS_NAMES[i]} : {round(float(preds[i])*100,2)}%")
+        pdf = create_pdf(
+            st.session_state.get("name",""),
+            st.session_state.get("age",""),
+            disease,
+            confidence,
+            severity,
+            symptoms,
+            medicines
+        )
+
+        st.download_button(
+            "📄 Download PDF Report",
+            pdf.output(dest="S").encode("latin-1"),
+            "Dermatology_Report.pdf",
+            "application/pdf"
+        )
 
 # ======================================================
 # ROUTER
