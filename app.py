@@ -35,15 +35,11 @@ box-shadow:0 8px 20px rgba(0,0,0,0.1);margin-bottom:20px;}
 .mild{background:#e8f5e9;}
 .moderate{background:#fffde7;}
 .severe{background:#ffebee;}
-.btn{display:inline-block;padding:10px 18px;border-radius:12px;
-color:white;text-decoration:none;font-weight:bold;}
-.btn-green{background:#2e7d32;}
-.btn-blue{background:#1565c0;}
 </style>
 """, unsafe_allow_html=True)
 
 # ======================================================
-# MODEL DOWNLOAD + LOAD (GOOGLE DRIVE)
+# MODEL DOWNLOAD + LOAD (KEEP SAME)
 # ======================================================
 MODEL_PATH = "dermatology_assistant_model.keras"
 GDRIVE_URL = "https://drive.google.com/uc?id=1k5QpG18JlqCetsGhqZuNdCFS_OdPDDUZ"
@@ -58,43 +54,43 @@ def load_derm_model():
 model = load_derm_model()
 
 # ======================================================
-# 23 DISEASE CLASSES
+# ✅ DATASET CLASS NAMES (EXACT MATCH)
 # ======================================================
 CLASS_NAMES = [
-    "Acne","Actinic Keratosis","Basal Cell Carcinoma","Benign Keratosis",
-    "Dermatofibroma","Eczema","Melanoma","Nevus","Psoriasis","Rosacea",
-    "Seborrheic Keratosis","Squamous Cell Carcinoma","Tinea Ringworm",
-    "Vitiligo","Urticaria","Lichen Planus","Impetigo","Cellulitis","Warts",
-    "Herpes Simplex","Chickenpox","Scabies","Contact Dermatitis"
+    "Acne and Rosacea",
+    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions",
+    "Atopic Dermatitis",
+    "Bullous Disease",
+    "Cellulitis Impetigo and other Bacterial Infections",
+    "Eczema",
+    "Exanthems and Drug Eruptions",
+    "Hair Loss Photos Alopecia and other Hair Diseases",
+    "Herpes HPV and other STDs",
+    "Light Diseases and Disorders of Pigmentation",
+    "Lupus and other Connective Tissue Diseases",
+    "Melanoma Skin Cancer Nevi and Moles",
+    "Nail Fungus and other Nail Disease",
+    "Poison Ivy Photos and other Contact Dermatitis",
+    "Psoriasis pictures Lichen Planus and Related Diseases",
+    "Scabies Lyme Disease and other Infestations and Bites",
+    "Seborrheic Keratoses and other Benign Tumors",
+    "Systemic Disease",
+    "Tinea Ringworm Candidiasis and other Fungal Infections",
+    "Urticaria Hives",
+    "Vascular Tumors",
+    "Vasculitis Photos",
+    "Warts Molluscum and other Viral Infections"
 ]
 
 # ======================================================
-# MEDICINE DATABASE
+# MEDICINE DATABASE (SAFE KEYS)
 # ======================================================
 MEDICINE_DB = {
-    "Acne":["Benzoyl Peroxide","Adapalene"],
-    "Actinic Keratosis":["5-Fluorouracil","Imiquimod"],
-    "Basal Cell Carcinoma":["Surgical Excision"],
-    "Benign Keratosis":["No treatment needed"],
-    "Dermatofibroma":["Observation"],
-    "Eczema":["Hydrocortisone","Moisturizer"],
-    "Melanoma":["Immediate Oncology Referral"],
-    "Nevus":["Monitoring"],
-    "Psoriasis":["Vitamin D Cream","Coal Tar"],
-    "Rosacea":["Metronidazole","Azelaic Acid"],
-    "Seborrheic Keratosis":["Cryotherapy"],
-    "Squamous Cell Carcinoma":["Surgical Removal"],
-    "Tinea Ringworm":["Clotrimazole","Ketoconazole"],
-    "Vitiligo":["Tacrolimus"],
-    "Urticaria":["Antihistamines"],
-    "Lichen Planus":["Corticosteroids"],
-    "Impetigo":["Mupirocin"],
-    "Cellulitis":["Oral Antibiotics"],
-    "Warts":["Salicylic Acid"],
-    "Herpes Simplex":["Acyclovir"],
-    "Chickenpox":["Calamine Lotion"],
-    "Scabies":["Permethrin Cream"],
-    "Contact Dermatitis":["Topical Steroids"]
+    "Acne and Rosacea": ["Benzoyl Peroxide", "Adapalene"],
+    "Eczema": ["Hydrocortisone", "Moisturizer"],
+    "Tinea Ringworm Candidiasis and other Fungal Infections": ["Clotrimazole", "Ketoconazole"],
+    "Psoriasis pictures Lichen Planus and Related Diseases": ["Coal Tar", "Vitamin D"],
+    "Melanoma Skin Cancer Nevi and Moles": ["Immediate Oncology Referral"]
 }
 
 MED_LINK = "https://www.1mg.com/search/all?name="
@@ -107,8 +103,10 @@ def preprocess_image(img):
     img = np.array(img) / 255.0
     return np.expand_dims(img, 0)
 
+CONF_THRESHOLD = 0.60
+
 def severity_calc(disease, conf):
-    if disease in ["Melanoma", "Basal Cell Carcinoma", "Squamous Cell Carcinoma"]:
+    if "Melanoma" in disease or "Carcinoma" in disease:
         return "Severe"
     elif conf >= 75:
         return "Moderate"
@@ -116,7 +114,7 @@ def severity_calc(disease, conf):
         return "Mild"
 
 # ======================================================
-# GRAD-CAM (CLOUD SAFE)
+# GRAD-CAM
 # ======================================================
 def gradcam(img_array, model):
     for layer in reversed(model.layers):
@@ -144,8 +142,7 @@ def overlay(img, heatmap):
     heatmap = Image.fromarray(np.uint8(255 * heatmap)).resize((224,224))
     heatmap = np.array(heatmap)
     heatmap = cm.jet(heatmap)[:, :, :3] * 255
-    overlay_img = 0.6 * img + 0.4 * heatmap
-    return Image.fromarray(overlay_img.astype(np.uint8))
+    return Image.fromarray((0.6*img + 0.4*heatmap).astype(np.uint8))
 
 # ======================================================
 # PDF REPORT
@@ -173,9 +170,7 @@ def make_pdf(name, age, gender, disease, conf, severity, meds):
     for m in meds:
         pdf.cell(0,8,f"- {m}",ln=True)
 
-    pdf.ln(3)
-    pdf.set_font("Arial",size=10)
-    pdf.multi_cell(0,8,"AI-based preliminary screening only. Consult a dermatologist.")
+    pdf.multi_cell(0,8,"This is an AI-assisted screening tool. Consult a dermatologist.")
     return pdf
 
 # ======================================================
@@ -212,36 +207,36 @@ def app():
         if predict and file:
             arr = preprocess_image(img)
             preds = model.predict(arr)[0]
-            idx = np.argmax(preds)
 
-            disease = CLASS_NAMES[idx]
-            conf = round(preds[idx]*100,2)
-            sev = severity_calc(disease, conf)
+            idx = np.argmax(preds)
+            conf = round(float(preds[idx]) * 100, 2)
+
+            if preds[idx] < CONF_THRESHOLD:
+                disease = "Uncertain / Low Confidence"
+                sev = "Unknown"
+                meds = ["Consult dermatologist"]
+            else:
+                disease = CLASS_NAMES[idx]
+                sev = severity_calc(disease, conf)
+                meds = MEDICINE_DB.get(disease, ["Consult dermatologist"])
 
             st.markdown(
                 f"<div class='card'><h3>{disease}</h3><p>Confidence: {conf}%</p></div>",
                 unsafe_allow_html=True
             )
 
-            sev_class = "mild" if sev=="Mild" else "moderate" if sev=="Moderate" else "severe"
             st.markdown(
-                f"<div class='card {sev_class}'><h3>Severity: {sev}</h3></div>",
+                f"<div class='card'><h3>Severity: {sev}</h3></div>",
                 unsafe_allow_html=True
             )
 
             st.subheader("💊 Medicines")
-            meds = MEDICINE_DB[disease]
             for m in meds:
                 st.markdown(f"- **{m}** → [Link]({MED_LINK}{urllib.parse.quote(m)})")
 
-            st.subheader("🔥 Grad-CAM")
-            st.image(overlay(img, gradcam(arr, model)))
-
-            st.subheader("📍 Nearby Dermatologists")
-            st.components.v1.iframe(
-                "https://www.google.com/maps?q=dermatologist+near+me&output=embed",
-                height=300
-            )
+            if disease != "Uncertain / Low Confidence":
+                st.subheader("🔥 Grad-CAM")
+                st.image(overlay(img, gradcam(arr, model)))
 
             pdf = make_pdf(name, age, gender, disease, conf, sev, meds)
             st.download_button(
